@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>清算書メーカー</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#fdf6ff;color:#2d1b4e;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;padding-bottom:80px}
+
+.header{background:linear-gradient(135deg,#a855f7,#ec4899);padding:14px 16px 12px;color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(168,85,247,.3)}
+.header h1{font-size:17px;font-weight:800}
+.header p{font-size:11px;opacity:.85;margin-top:3px}
+
+.wrap{padding:12px;display:flex;flex-direction:column;gap:12px}
+
+.card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 2px 16px rgba(168,85,247,.1);border:1px solid #e9d5ff}
+.card-title{font-size:13px;font-weight:800;color:#a855f7;margin-bottom:12px}
+
+.lbl{display:block;font-size:11px;font-weight:700;color:#9d7bb8;margin-bottom:4px}
+input[type=text],input[type=number],input[type=url],textarea{
+  width:100%;padding:10px 12px;border:1.5px solid #e9d5ff;border-radius:10px;
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;font-size:15px;color:#2d1b4e;
+  background:#fdf6ff;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus{border-color:#a855f7;background:#fff}
+textarea{resize:none;line-height:1.6;font-size:14px}
+
+/* AI解析 */
+.ai-box{background:linear-gradient(135deg,rgba(168,85,247,.06),rgba(244,114,182,.06));border:1.5px solid rgba(168,85,247,.25);border-radius:14px;padding:14px}
+.ai-title{font-size:13px;font-weight:800;color:#a855f7;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ai-badge{background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px}
+
+/* 商品ヘッダー */
+.item-head{display:grid;grid-template-columns:1fr 52px 72px 34px;gap:4px;margin-bottom:4px}
+.item-head span{font-size:10px;color:#9d7bb8;font-weight:700}
+.item-head span:nth-child(2),.item-head span:nth-child(3){text-align:center}
+
+/* 商品行 */
+.item-row{display:grid;grid-template-columns:1fr 52px 72px 34px;gap:4px;align-items:center;margin-bottom:6px}
+.item-row input{font-size:13px;padding:8px 6px}
+.item-row input[type=number]{text-align:center}
+.item-row input[type=number]:last-of-type{text-align:right}
+
+/* 5%OFFチェック */
+.disc-row{grid-column:1/-1;display:flex;align-items:center;gap:6px;padding:0 2px 6px;margin-top:-2px}
+.disc-row input[type=checkbox]{width:20px;height:20px;padding:0;accent-color:#f472b6;flex-shrink:0;cursor:pointer}
+.disc-row .disc-lbl{font-size:12px;color:#f472b6;font-weight:700;flex:1}
+.disc-row .disc-amt{font-size:12px;font-weight:800;color:#f472b6}
+
+/* 送料ボタン */
+.ship-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ship-btn{
+  padding:12px 8px;border-radius:12px;
+  border:2px solid #e9d5ff;background:#fdf6ff;
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;
+  text-align:center;line-height:1.5;
+  cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  touch-action:manipulation;
+  display:block;width:100%
+}
+.ship-btn .sn{font-size:14px;font-weight:800;color:#2d1b4e;display:block}
+.ship-btn .sd{font-size:10px;color:#9d7bb8;display:block;margin-top:2px}
+.ship-btn .sp{font-size:16px;font-weight:800;color:#a855f7;display:block;margin-top:2px}
+.ship-btn.on{border-color:#a855f7;background:rgba(192,132,252,.1)}
+.ship-btn.on .sp{color:#f472b6}
+
+/* 支払いボタン */
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pay-btn{
+  padding:12px;border-radius:12px;
+  border:2px solid #e9d5ff;background:#fdf6ff;
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;
+  font-size:14px;font-weight:800;color:#9d7bb8;
+  cursor:pointer;text-align:center;
+  -webkit-appearance:none;appearance:none;
+  touch-action:manipulation;
+  display:block;width:100%
+}
+.pay-btn.on{border-color:#f472b6;background:rgba(244,114,182,.1);color:#be185d}
+
+.disc-info{display:none;margin-top:8px;font-size:11px;color:#f472b6;font-weight:700;background:rgba(244,114,182,.07);border:1px solid rgba(244,114,182,.25);border-radius:8px;padding:8px 10px;line-height:1.6}
+.disc-info.show{display:block}
+
+/* 汎用ボタン */
+.btn{
+  display:block;width:100%;padding:12px;border-radius:12px;border:none;
+  font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Hiragino Sans','Noto Sans JP',sans-serif;font-size:15px;font-weight:800;
+  cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none;
+  text-align:center
+}
+.btn-primary{background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;box-shadow:0 3px 12px rgba(168,85,247,.35)}
+.btn-add{background:transparent;color:#9d7bb8;border:2px dashed #e9d5ff !important;margin-top:6px}
+.btn-del{
+  width:32px;height:32px;padding:0;border-radius:8px;border:none;
+  background:rgba(248,113,113,.12);color:#f87171;font-size:16px;font-weight:800;
+  cursor:pointer;touch-action:manipulation;-webkit-appearance:none;appearance:none;
+  display:flex;align-items:center;justify-content:center
+}
+.btn-secondary{background:#fdf6ff;color:#9d7bb8;border:1.5px solid #e9d5ff}
+
+/* 合計 */
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #e9d5ff;font-size:14px}
+.sum-row:last-child{border-bottom:none}
+.sum-lbl{color:#9d7bb8;font-size:13px}
+.sum-val{font-weight:700}
+.sum-val.red{color:#f472b6}
+.sum-total{display:flex;justify-content:space-between;align-items:center;padding:10px 0 4px;margin-top:4px}
+.sum-total span:first-child{font-size:14px;font-weight:800;color:#a855f7}
+.sum-total span:last-child{font-size:24px;font-weight:800;color:#f472b6}
+
+/* プレビュー */
+.preview{background:#f8f0ff;border:1.5px solid #e9d5ff;border-radius:12px;padding:14px;font-size:13px;line-height:1.9;white-space:pre-wrap;color:#2d1b4e;word-break:break-all;min-height:60px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+
+.note{font-size:11px;color:#9d7bb8;line-height:1.6;padding:8px 10px;background:rgba(192,132,252,.06);border-radius:8px;margin-top:8px}
+
+/* 解析結果 */
+.result{display:none;margin-top:10px;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.7}
+.result.ok{display:block;background:rgba(74,222,128,.08);border:1.5px solid rgba(74,222,128,.3);color:#166534}
+.result.ng{display:block;background:rgba(248,113,113,.08);border:1.5px solid rgba(248,113,113,.3);color:#991b1b}
+
+/* スピナー */
+.spin{display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;margin-right:6px}
+.spin.show{display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* カスタム送料 */
+.custom-ship{display:none;margin-top:10px}
+.custom-ship.show{display:block}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#2d1b4e;color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:700;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>✨ 清算書メーカー</h1>
+  <p>コメントをペーストするだけで自動入力</p>
+</div>
+
+<div class="wrap">
+
+  <!-- AI解析 -->
+  <div class="ai-box">
+    <div class="ai-title">🤖 コメント自動解析 <span class="ai-badge">AI</span></div>
+    <span class="lbl">オプチャのコメントをここに貼り付け</span>
+    <textarea id="commentInput" rows="4" placeholder="例：パールパーツ2個とリボンシール3枚お願いします！"></textarea>
+    <button type="button" class="btn btn-primary" style="margin-top:10px" onclick="analyzeComment()">
+      <span class="spin" id="spin"></span><span id="analyzeLabel">✨ 解析して清算書に反映する</span>
+    </button>
+    <div class="result" id="analyzeResult"></div>
+  </div>
+
+  <!-- お客様情報 -->
+  <div class="card">
+    <div class="card-title">👤 お客様情報</div>
+    <span class="lbl">お名前（ニックネームOK）</span>
+    <input type="text" id="customerName" placeholder="例：さくら様" oninput="updateAll()">
+  </div>
+
+  <!-- 商品リスト -->
+  <div class="card">
+    <div class="card-title">🛍️ 商品リスト</div>
+    <div class="item-head">
+      <span>商品名</span><span>数量</span><span>単価(円)</span><span></span>
+    </div>
+    <div id="itemList"></div>
+    <button type="button" class="btn btn-add" onclick="addItem()">＋ 商品を追加</button>
+  </div>
+
+  <!-- 送料 -->
+  <div class="card">
+    <div class="card-title">📦 送料</div>
+    <div class="ship-grid">
+      <button type="button" class="ship-btn on" id="sb0" onclick="pickShip(0,290,'ゆうパケット')">
+        <span class="sn">ゆうパケット</span>
+        <span class="sd">実費¥360→当店¥70負担</span>
+        <span class="sp">¥290</span>
+      </button>
+      <button type="button" class="ship-btn" id="sb1" onclick="pickShip(1,540,'レターパックプラス')">
+        <span class="sn">レターパックプラス</span>
+        <span class="sd">実費¥660→当店¥120負担</span>
+        <span class="sp">¥540</span>
+      </button>
+      <button type="button" class="ship-btn" id="sb2" onclick="pickShip(2,'custom','その他')">
+        <span class="sn">その他</span>
+        <span class="sd">手入力</span>
+        <span class="sp">—</span>
+      </button>
+    </div>
+    <div class="custom-ship" id="customShipWrap">
+      <input type="number" id="customShipVal" placeholder="送料を入力（円）" oninput="updateAll()">
+    </div>
+  </div>
+
+  <!-- 支払い方法 -->
+  <div class="card">
+    <div class="card-title">💳 お支払い方法</div>
+    <div class="pay-grid">
+      <button type="button" class="pay-btn on" id="pb0" onclick="pickPay(0,'PayPay')">💛 PayPay</button>
+      <button type="button" class="pay-btn" id="pb1" onclick="pickPay(1,'BASE')">🛒 BASE</button>
+    </div>
+    <div class="disc-info show" id="discInfo">
+      💛 PayPay払いの対象商品に「5%OFF」をチェックすると自動で割引されます
+    </div>
+  </div>
+
+  <!-- BASEリンク -->
+  <div class="card">
+    <div class="card-title">🔗 BASEショップURL（任意）</div>
+    <span class="lbl">専用ページのURL</span>
+    <input type="url" id="baseUrl" placeholder="https://yourshop.base.shop/..." oninput="updateAll()">
+    <div class="note">※入力すると清算書にURLが自動で追加されます</div>
+  </div>
+
+  <!-- 合計 -->
+  <div class="card">
+    <div class="card-title">💰 合計金額</div>
+    <div class="sum-row"><span class="sum-lbl">商品合計</span><span class="sum-val" id="dSubtotal">¥0</span></div>
+    <div class="sum-row" id="dDiscRow" style="display:none"><span class="sum-lbl">5%OFF割引</span><span class="sum-val red" id="dDiscount">-¥0</span></div>
+    <div class="sum-row"><span class="sum-lbl">送料</span><span class="sum-val" id="dShipping">¥290</span></div>
+    <div class="sum-total">
+      <span>お支払い合計</span>
+      <span id="dTotal">¥290</span>
+    </div>
+  </div>
+
+  <!-- プレビュー -->
+  <div class="card">
+    <div class="card-title">📋 送信用テキスト</div>
+    <div class="preview" id="preview">商品を入力するとここに表示されます</div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-primary" onclick="copyText()">📋 コピーする</button>
+      <button type="button" class="btn btn-secondary" onclick="resetAll()">🔄 リセット</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">コピーしました！</div>
+
+<script>
+var items = [];
+var idc = 0;
+var shipAmt = 290;
+var shipName = 'ゆうパケット';
+var payMethod = 'PayPay';
+
+// 初期2行
+addItem(); addItem();
+
+// ── 商品追加 ──
+function addItem() {
+  items.push({id: idc++, name:'', qty:1, price:0, disc:false});
+  drawItems();
+}
+
+function delItem(id) {
+  items = items.filter(function(i){ return i.id !== id; });
+  drawItems();
+}
+
+function drawItems() {
+  var list = document.getElementById('itemList');
+  var html = '';
+  var isPayPay = payMethod === 'PayPay';
+  for (var k = 0; k < items.length; k++) {
+    var it = items[k];
+    var did = it.id;
+    var discAmt = (it.disc && it.price) ? Math.floor(it.price * 0.95 * (it.qty||1)) : 0;
+    html += '<div class="item-row">';
+    html += '<input type="text" placeholder="商品名" value="'+escHtml(it.name)+'" oninput="setItem('+did+',\'name\',this.value)">';
+    html += '<input type="number" placeholder="1" value="'+(it.qty||'')+'" min="1" oninput="setItem('+did+',\'qty\',this.value)">';
+    html += '<input type="number" placeholder="0" value="'+(it.price||'')+'" min="0" style="text-align:right" oninput="setItem('+did+',\'price\',this.value)">';
+    html += '<button type="button" class="btn-del" onclick="delItem('+did+')">×</button>';
+    if (isPayPay) {
+      html += '<div class="disc-row">';
+      html += '<input type="checkbox" id="dc'+did+'"'+(it.disc?' checked':'')+' onchange="setItem('+did+',\'disc\',this.checked)">';
+      html += '<label class="disc-lbl" for="dc'+did+'">🏷️ 5%OFF対象</label>';
+      if (discAmt) html += '<span class="disc-amt">→ ¥'+discAmt.toLocaleString()+'</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  list.innerHTML = html;
+  calcAll();
+}
+
+function setItem(id, field, val) {
+  for (var k = 0; k < items.length; k++) {
+    if (items[k].id === id) {
+      if (field === 'name')  items[k].name  = val;
+      if (field === 'qty')   items[k].qty   = parseInt(val)||0;
+      if (field === 'price') items[k].price = parseInt(val)||0;
+      if (field === 'disc')  items[k].disc  = val;
+      break;
+    }
+  }
+  drawItems();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// ── 送料 ──
+function pickShip(idx, amt, name) {
+  for (var i = 0; i < 3; i++) {
+    var b = document.getElementById('sb'+i);
+    if (b) b.className = 'ship-btn' + (i===idx?' on':'');
+  }
+  var cw = document.getElementById('customShipWrap');
+  if (amt === 'custom') {
+    cw.className = 'custom-ship show';
+    shipAmt = parseInt(document.getElementById('customShipVal').value)||0;
+  } else {
+    cw.className = 'custom-ship';
+    shipAmt = amt;
+  }
+  shipName = name;
+  calcAll();
+}
+
+// ── 支払い ──
+function pickPay(idx, method) {
+  document.getElementById('pb0').className = 'pay-btn'+(idx===0?' on':'');
+  document.getElementById('pb1').className = 'pay-btn'+(idx===1?' on':'');
+  payMethod = method;
+  if (method !== 'PayPay') {
+    for (var k=0; k<items.length; k++) items[k].disc = false;
+  }
+  document.getElementById('discInfo').className = 'disc-info'+(method==='PayPay'?' show':'');
+  drawItems();
+}
+
+// ── 計算 ──
+function updateAll() {
+  var cw = document.getElementById('customShipWrap');
+  if (cw.className.indexOf('show') >= 0) {
+    shipAmt = parseInt(document.getElementById('customShipVal').value)||0;
+  }
+  calcAll();
+}
+
+function calcAll() {
+  var sub = 0;
+  for (var k=0; k<items.length; k++) sub += items[k].price * (items[k].qty||1);
+  var disc = 0;
+  if (payMethod === 'PayPay') {
+    for (var k=0; k<items.length; k++) {
+      if (items[k].disc) disc += Math.floor(items[k].price * (items[k].qty||1) * 0.05);
+    }
+  }
+  var total = sub - disc + shipAmt;
+
+  document.getElementById('dSubtotal').textContent = '¥'+sub.toLocaleString();
+  document.getElementById('dShipping').textContent = '¥'+shipAmt.toLocaleString();
+  document.getElementById('dTotal').textContent    = '¥'+total.toLocaleString();
+  var dr = document.getElementById('dDiscRow');
+  dr.style.display = disc>0 ? 'flex' : 'none';
+  document.getElementById('dDiscount').textContent = '-¥'+disc.toLocaleString();
+
+  buildPreview(sub, disc, total);
+}
+
+function buildPreview(sub, disc, total) {
+  var valid = items.filter(function(i){ return i.name; });
+  if (!valid.length) {
+    document.getElementById('preview').textContent = '商品を入力するとここに表示されます';
+    return;
+  }
+  var name    = document.getElementById('customerName').value || 'お客様';
+  var baseUrl = document.getElementById('baseUrl').value;
+
+  var lines = '';
+  for (var k=0; k<valid.length; k++) {
+    var it = valid[k];
+    var qty = it.qty||1;
+    var lp  = it.price * qty;
+    var isd = payMethod==='PayPay' && it.disc;
+    var ad  = isd ? Math.floor(lp*0.95) : lp;
+    var ln  = qty>1
+      ? '・'+it.name+'　×'+qty+'　¥'+it.price.toLocaleString()+'×'+qty
+      : '・'+it.name+'　¥'+it.price.toLocaleString();
+    if (isd) ln += '　→ 5%OFF ¥'+ad.toLocaleString();
+    lines += ln + '\n';
+  }
+
+  var t = name+'、ご注文ありがとうございます🎀\n';
+  t += '清算書をお送りします✨\n\n';
+  t += '━━━━━━━━━━━━\n';
+  t += '【ご注文内容】\n'+lines;
+  t += '\n商品合計　¥'+sub.toLocaleString()+'\n';
+  if (disc>0) t += '5%OFF割引　-¥'+disc.toLocaleString()+'\n';
+  t += '送料　　　¥'+shipAmt.toLocaleString()+'（'+shipName+'）\n';
+  t += '━━━━━━━━━━━━\n';
+  t += '💰 合計　¥'+total.toLocaleString()+'\n';
+  t += '━━━━━━━━━━━━\n\n';
+  t += '【お支払い方法】\n';
+  if (payMethod==='PayPay') {
+    t += 'PayPay\nQRコードは公式LINEよりお送りします📲\n';
+  } else {
+    t += 'BASE（ショップページよりお支払いください）\n';
+  }
+  if (baseUrl) t += '\n【ご購入ページ】\n'+baseUrl+'\n';
+  t += '\nご入金確認後に発送いたします🚀\n';
+  t += 'お支払い期限：3日以内にお願いします🙏';
+
+  document.getElementById('preview').textContent = t;
+}
+
+// ── AI解析 ──
+async function analyzeComment() {
+  var comment = document.getElementById('commentInput').value.trim();
+  if (!comment) return;
+  var btn = document.querySelector('.ai-box .btn');
+  var spin = document.getElementById('spin');
+  var lbl  = document.getElementById('analyzeLabel');
+  var res  = document.getElementById('analyzeResult');
+  btn.disabled = true;
+  spin.className = 'spin show';
+  lbl.textContent = '解析中...';
+  res.className = 'result';
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'ハンドメイドパーツ販売のLINEコメントから注文情報を抽出してください。JSON形式のみで返してください。説明文・コードブロック不要。\n{"customerName":"名前またはnull","items":[{"name":"商品名","qty":数量,"price":0}]}',
+        messages:[{role:'user',content:comment}]
+      })
+    });
+    var data = await resp.json();
+    var text = data.content.map(function(c){return c.text||'';}).join('');
+    var clean = text.replace(/```json|```/g,'').trim();
+    var parsed = JSON.parse(clean);
+    items = []; idc = 0;
+    parsed.items.forEach(function(it){
+      items.push({id:idc++,name:it.name||'',qty:it.qty||1,price:it.price||0,disc:false});
+    });
+    if (!items.length) addItem();
+    if (parsed.customerName) document.getElementById('customerName').value = parsed.customerName;
+    drawItems();
+    var ns = parsed.items.map(function(i){return '・'+i.name+' ×'+i.qty;}).join('\n');
+    res.className = 'result ok';
+    res.textContent = '✅ 解析完了！\n'+ns+'\n\n単価が「0」の商品は手動で入力してください';
+  } catch(e) {
+    res.className = 'result ng';
+    res.textContent = '⚠️ 解析できませんでした。商品を手動で入力してください。';
+  }
+  btn.disabled = false;
+  spin.className = 'spin';
+  lbl.textContent = '✨ 解析して清算書に反映する';
+}
+
+// ── コピー ──
+function copyText() {
+  var text = document.getElementById('preview').textContent;
+  if (text === '商品を入力するとここに表示されます') return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(showToast);
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.cssText='position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast();
+  }
+}
+
+function showToast() {
+  var t = document.getElementById('toast');
+  t.className = 'toast show';
+  setTimeout(function(){ t.className='toast'; }, 2000);
+}
+
+// ── リセット ──
+function resetAll() {
+  if (!confirm('リセットしますか？')) return;
+  document.getElementById('customerName').value = '';
+  document.getElementById('baseUrl').value = '';
+  document.getElementById('commentInput').value = '';
+  document.getElementById('analyzeResult').className = 'result';
+  items = []; idc = 0;
+  addItem(); addItem();
+  shipAmt = 290; shipName = 'ゆうパケット';
+  pickShip(0, 290, 'ゆうパケット');
+  payMethod = 'PayPay';
+  pickPay(0, 'PayPay');
+}
+</script>
+</body>
+</html>
